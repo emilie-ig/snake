@@ -16,6 +16,7 @@ SNAKE_HEAD_COLOR = (1, 252, 128)
 SNAKE_TAIL_COLOR = (0, 140, 80)
 TONGUE_COLOR = (230, 30, 60)
 BACKGROUND_COLOR = (104, 56, 0)
+BACKGROUND_COLOR_2 = (118, 66, 4)
 APPLE_COLOR = (250, 12, 4)
 BORDER_COLOR = (232, 168, 0)
 SCORE_COLOR = (248, 252, 248)
@@ -227,7 +228,10 @@ class Apple:
         pygame.draw.ellipse(surface, (50, 180, 50), leaf)
 
 def draw_background(surface):
-    surface.fill(BACKGROUND_COLOR)
+    for x in range(GRID_SIZE):
+        for y in range(GRID_SIZE):
+            color = BACKGROUND_COLOR if (x + y) % 2 == 0 else BACKGROUND_COLOR_2
+            pygame.draw.rect(surface, color, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
 def draw_border(surface):
     pygame.draw.rect(surface, BORDER_COLOR, pygame.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT), CELL_SIZE)
@@ -274,9 +278,26 @@ def stun_animation(snake, apple, score, duration=1500):
         pygame.display.flip()
         clock.tick(60)
 
+particles = []  # chaque éclat : [x, y, vx, vy, vie]
+
+def spawn_particles(cell):
+    cx = cell[0] * CELL_SIZE + CELL_SIZE // 2
+    cy = cell[1] * CELL_SIZE + CELL_SIZE // 2
+    for _ in range(12):
+        angle = random.uniform(0, 2 * math.pi)
+        speed = random.uniform(2, 6)
+        particles.append([cx, cy, math.cos(angle) * speed, math.sin(angle) * speed, 8])
+
+def draw_particles(surface):
+    for p in particles:
+        p[0] += p[2]
+        p[1] += p[3]
+        p[4] -= 1
+        pygame.draw.circle(surface, APPLE_COLOR, (int(p[0]), int(p[1])), max(1, p[4] // 2))
+    particles[:] = [p for p in particles if p[4] > 0]
 
 def main():
-
+    particles.clear()
     clock = pygame.time.Clock()
     snake = Snake()
     apple = Apple(snake)
@@ -319,6 +340,7 @@ def main():
 
         if snake.positions[0] == apple.positions:
             apple_sound.play()
+            spawn_particles(apple.positions)
             snake.grow_snake()
             apple = Apple(snake)
             score += 1
@@ -327,6 +349,7 @@ def main():
         draw_border(screen)
         snake.draw(screen)
         apple.draw(screen)
+        draw_particles(screen)
         display_score(screen, score)
         pygame.display.flip()
         clock.tick(FPS)
