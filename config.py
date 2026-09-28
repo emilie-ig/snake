@@ -5,7 +5,7 @@ pygame.mixer.init()
 
 # Dimensions et paramètres
 SCREEN_WIDTH = 500
-SCREEN_HEIGHT = 500
+SCREEN_HEIGHT = 500 
 CELL_SIZE = 25
 GRID_SIZE = SCREEN_WIDTH // CELL_SIZE
 FPS = 10
@@ -16,6 +16,7 @@ TONGUE_COLOR = (230, 30, 60)
 BACKGROUND_COLOR = (92, 48, 20)
 BACKGROUND_COLOR_2 = (100, 54, 22)
 APPLE_COLOR = (250, 12, 4)
+GOLDEN_APPLE_COLOR = (255, 215, 0)
 BORDER_COLOR = (0, 140, 80)
 SCORE_COLOR = (248, 252, 248)
 
@@ -32,6 +33,7 @@ button_font = pygame.font.Font(None, 42)
 small_font = pygame.font.Font(None, 28)
 
 apple_sound = pygame.mixer.Sound("assets/sounds/apple_bite.mp3")
+golden_sound = pygame.mixer.Sound("assets/sounds/golden.mp3")
 gameover_sound = pygame.mixer.Sound("assets/sounds/gameover.mp3")
 sss_sound = pygame.mixer.Sound("assets/sounds/ssss.mp3")
 victory_sound = pygame.mixer.Sound("assets/sounds/victory.mp3")
