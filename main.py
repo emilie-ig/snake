@@ -15,8 +15,8 @@ FPS = 10
 SNAKE_HEAD_COLOR = (1, 252, 128)
 SNAKE_TAIL_COLOR = (0, 140, 80)
 TONGUE_COLOR = (230, 30, 60)
-BACKGROUND_COLOR = (104, 56, 0)
-BACKGROUND_COLOR_2 = (118, 66, 4)
+BACKGROUND_COLOR = (92, 48, 20)
+BACKGROUND_COLOR_2 = (100, 54, 22)
 APPLE_COLOR = (250, 12, 4)
 BORDER_COLOR = (232, 168, 0)
 SCORE_COLOR = (248, 252, 248)
@@ -45,6 +45,7 @@ class Snake:
         self.positions = [(5, 5), (4, 5), (3, 5)]
         self.direction = (1, 0)
         self.grow = False
+        self.mouth_open = False
 
     def move(self):
         head_x, head_y = self.positions[0]
@@ -115,13 +116,15 @@ class Snake:
     def draw_tongue(self, surface):
         t = pygame.time.get_ticks() % TONGUE_PERIOD
 
-        #on lance le son (la 1re seconde est muette)
-        if t < getattr(self, "last_t", TONGUE_PERIOD):
+        if self.mouth_open:
+            sss_sound.stop()  # pas de sifflement bouche ouverte
+        elif t < getattr(self, "last_t", TONGUE_PERIOD):
+            # on lance le son (la 1re seconde est muette)
             sss_sound.play(maxtime=TONGUE_DELAY + TONGUE_DURATION)
         self.last_t = t
 
-        # La langue sort au moment où le son devient audible
-        if not (TONGUE_DELAY <= t <= TONGUE_DELAY + TONGUE_DURATION):
+        # Pas de langue si la bouche est ouverte, ou si ce n'est pas son moment
+        if self.mouth_open or not (TONGUE_DELAY <= t <= TONGUE_DELAY + TONGUE_DURATION):
             return
 
         head_x, head_y = self.positions[0]
@@ -148,6 +151,30 @@ class Snake:
         dx, dy = self.direction
         cx = head_x * CELL_SIZE + CELL_SIZE / 2
         cy = head_y * CELL_SIZE + CELL_SIZE / 2
+
+        if self.mouth_open:
+            # Bajoues : deux joues rondes sur les côtés de la tête
+            for sign in (-1, 1):
+                jx = cx + dx * CELL_SIZE * 0.12 + (-dy) * CELL_SIZE * 0.38 * sign
+                jy = cy + dy * CELL_SIZE * 0.12 + dx * CELL_SIZE * 0.38 * sign
+                pygame.draw.circle(surface, SNAKE_HEAD_COLOR, (int(jx), int(jy)), int(CELL_SIZE * 0.32))
+
+            # Museau : quelques pixels de plus devant, au niveau de la bouche
+            mux = int(cx + dx * CELL_SIZE * 0.3)
+            muy = int(cy + dy * CELL_SIZE * 0.3)
+            pygame.draw.circle(surface, SNAKE_HEAD_COLOR, (mux, muy), int(CELL_SIZE * 0.45))
+                
+            # Bouche
+            mx = cx + dx * CELL_SIZE * 0.5
+            my = cy + dy * CELL_SIZE * 0.5
+            long_side = int(CELL_SIZE * 0.5)    # largeur de la bouche
+            short_side = int(CELL_SIZE * 0.26)  # ouverture
+            w, h = (short_side, long_side) if dx != 0 else (long_side, short_side)
+            mouth = pygame.Rect(0, 0, w, h)
+            mouth.center = (int(mx), int(my))
+            pygame.draw.ellipse(surface, (120, 0, 20), mouth)
+
+            
 
         forward = CELL_SIZE * 0.15 # décalage des yeux vers l'avant
         side = CELL_SIZE * 0.24 # écart entre les deux yeux
@@ -344,6 +371,10 @@ def main():
             snake.grow_snake()
             apple = Apple(snake)
             score += 1
+
+        hx, hy = snake.positions[0]
+        ax, ay = apple.positions
+        snake.mouth_open = abs(hx - ax) + abs(hy - ay) <= 3
 
         draw_background(screen)
         draw_border(screen)
