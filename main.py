@@ -78,8 +78,8 @@ class Snake:
 
             # Segment arrondi (la tête est un peu plus grosse)
             if i == 0:
-                rect = pygame.Rect(px, py, CELL_SIZE, CELL_SIZE)
-                pygame.draw.rect(surface, color, rect, border_radius=CELL_SIZE // 2 - 2)
+                rect = pygame.Rect(px, py, CELL_SIZE, CELL_SIZE).inflate(1, 1)
+                pygame.draw.rect(surface, color, rect, border_radius=rect.width // 2 - 2)
             else:
                 rect = pygame.Rect(px + pad, py + pad, inner, inner)
                 pygame.draw.rect(surface, color, rect, border_radius=radius)
@@ -93,10 +93,6 @@ class Snake:
                     top = min(y, ny) * CELL_SIZE + CELL_SIZE // 2
                     connector = pygame.Rect(px + pad, top, inner, CELL_SIZE)
                 pygame.draw.rect(surface, color, connector)
-
-                # Petite écaille au centre
-                center = (px + CELL_SIZE // 2, py + CELL_SIZE // 2)
-                pygame.draw.circle(surface, dark, center, max(2, CELL_SIZE // 8))
 
         self.draw_head_details(surface)
 
