@@ -25,6 +25,7 @@ apple_sound = pygame.mixer.Sound("sounds/apple_bite.mp3")
 gameover_sound = pygame.mixer.Sound("sounds/gameover.mp3")
 sss_sound = pygame.mixer.Sound("sounds/ssss.mp3")
 victory_sound = pygame.mixer.Sound("sounds/victory.mp3")
+boing_sound = pygame.mixer.Sound("sounds/boingg.mp3")
 
 TONGUE_PERIOD = 3500 # temps entre deux cycles (ms)
 TONGUE_DELAY = 1000 # silence au début du son (ms)
@@ -292,6 +293,7 @@ def victory_screen(surface, score):
 
 def stun_animation(snake, apple, score, duration=1500):
     sss_sound.stop()  # coupe un sifflement éventuel
+    boing_sound.play()
     clock = pygame.time.Clock()
     start = pygame.time.get_ticks()
 
