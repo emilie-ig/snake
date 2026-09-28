@@ -17,7 +17,6 @@ from ui import (
 def draw_pause_overlay(screen):
     """Dessine un voile gris semi-transparent et l'affichage PAUSE."""
     overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-    # Remplissage gris avec une transparence alpha de 160 (sur 255)
     overlay.fill((30, 30, 30, 160))
     screen.blit(overlay, (0, 0))
 
@@ -85,7 +84,6 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:
                     if paused:
-                        # Si on était en pause, on fait le décompte avant de reprendre
                         run_countdown(screen, snake, apple, golden_apple, score)
                         paused = False
                     else:

@@ -43,3 +43,73 @@ boing_sound = pygame.mixer.Sound("assets/sounds/boingg.mp3")
 def lerp_color(c1, c2, t):
     """Mélange deux couleurs. t=0 donne c1, t=1 donne c2."""
     return tuple(int(a + (b - a) * t) for a, b in zip(c1, c2))
+
+# Dictionnaire de traduction
+LANGUAGES = {
+    "FR": {
+        "title": "SNAKE GAME",
+        "select_mode": "Choisissez votre mode de jeu :",
+        "start_hint": "Appuie sur [ESPACE] pour jouer",
+        "lang_indicator": "Langue : FR (Appuie sur L)",
+        "modes": {
+            "classic": {
+                "title": "Traditionnel",
+                "desc": "Le Snake classique. Mange des pommes rouges et survis !",
+                "icon": "assets/icon_classic.png"
+            },
+            "golden": {
+                "title": "Pomme Dorée",
+                "desc": "Des pommes dorées apparaissent ! (+3 pts, temporaires)",
+                "icon": "assets/icon_golden.png"
+            },
+            "ice_spicy": {
+                "title": "Glace & Piment",
+                "desc": "Pomme bleue (ralentit) et piment (accélère + x2 pts).",
+                "icon": "assets/icon_element.png"
+            },
+            "walls": {
+                "title": "Labyrinthe",
+                "desc": "Des murs internes apparaissent sur le terrain.",
+                "icon": "assets/icon_walls.png"
+            },
+            "custom": {
+                "title": "Sur Mesure",
+                "desc": "Coche toi-même les options et règles voulues !",
+                "icon": "assets/icon_custom.png"
+            }
+        }
+    },
+    "EN": {
+        "title": "SNAKE GAME",
+        "select_mode": "Select your game mode:",
+        "start_hint": "Press [SPACE] to start",
+        "lang_indicator": "Language: EN (Press L)",
+        "modes": {
+            "classic": {
+                "title": "Classic",
+                "desc": "The original Snake. Eat red apples and survive!",
+                "icon": "assets/icon_classic.png"
+            },
+            "golden": {
+                "title": "Golden Apple",
+                "desc": "Golden apples spawn! (+3 pts, limited time)",
+                "icon": "assets/icon_golden.png"
+            },
+            "ice_spicy": {
+                "title": "Ice & Chili",
+                "desc": "Blue apple (slows down) and chili (speed boost + x2 pts).",
+                "icon": "assets/icon_element.png"
+            },
+            "walls": {
+                "title": "Maze",
+                "desc": "Internal wall obstacles spawn in the arena.",
+                "icon": "assets/icon_walls.png"
+            },
+            "custom": {
+                "title": "Custom",
+                "desc": "Toggle and combine options as you like!",
+                "icon": "assets/icon_custom.png"
+            }
+        }
+    }
+}
