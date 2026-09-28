@@ -1,6 +1,7 @@
 import pygame
 import random
 import sys
+import math
 
 pygame.init()
 pygame.mixer.init()
@@ -70,12 +71,13 @@ class Snake:
     def grow_snake(self):
         self.grow = True
 
-    def draw(self, surface):
+    def draw(self, surface, stunned=False):
         n = len(self.positions)
         pad = max(1, CELL_SIZE // 10) # petit espace autour de chaque segment
         radius = CELL_SIZE // 3 # arrondi des segments
         inner = CELL_SIZE - 2 * pad
-        self.draw_tongue(surface)
+        if not stunned:
+            self.draw_tongue(surface)
 
         # On dessine de la queue vers la tête pour que la tête soit au-dessus
         for i in range(n - 1, -1, -1):
@@ -104,7 +106,10 @@ class Snake:
                     connector = pygame.Rect(px + pad, top, inner, CELL_SIZE)
                 pygame.draw.rect(surface, color, connector)
 
-        self.draw_head_details(surface)
+        if stunned:
+            self.draw_stunned_head(surface)
+        else:
+            self.draw_head_details(surface)
 
     def draw_tongue(self, surface):
         t = pygame.time.get_ticks() % TONGUE_PERIOD
@@ -156,6 +161,31 @@ class Snake:
             # La pupille regarde dans la direction du serpent
             pupil = (int(ex + dx * 2), int(ey + dy * 2))
             pygame.draw.circle(surface, (0, 0, 0), pupil, pupil_radius)
+
+    def draw_stunned_head(self, surface):
+        head_x, head_y = self.positions[0]
+        dx, dy = self.direction
+        cx = head_x * CELL_SIZE + CELL_SIZE / 2
+        cy = head_y * CELL_SIZE + CELL_SIZE / 2
+
+        forward = CELL_SIZE * 0.15
+        side = CELL_SIZE * 0.24
+        r = 3
+
+        # Yeux en croix
+        for sign in (-1, 1):
+            ex = cx + dx * forward + (-dy) * side * sign
+            ey = cy + dy * forward + dx * side * sign
+            pygame.draw.line(surface, (0, 0, 0), (ex - r, ey - r), (ex + r, ey + r), 2)
+            pygame.draw.line(surface, (0, 0, 0), (ex - r, ey + r), (ex + r, ey - r), 2)
+
+        # Trois étoiles qui tournent au-dessus de la tête
+        now = pygame.time.get_ticks()
+        for k in range(3):
+            angle = now / 150 + k * 2 * math.pi / 3
+            sx = cx + math.cos(angle) * CELL_SIZE * 0.7
+            sy = cy - CELL_SIZE * 0.9 + math.sin(angle) * CELL_SIZE * 0.25
+            pygame.draw.circle(surface, (255, 230, 0), (int(sx), int(sy)), 4)
 
 
 class Apple:
@@ -224,6 +254,27 @@ def victory_screen(surface, score):
     surface.blit(score_text, (SCREEN_WIDTH // 2 - score_text.get_width() // 2, SCREEN_HEIGHT //3))
     surface.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT //2))
 
+
+def stun_animation(snake, apple, score, duration=1500):
+    sss_sound.stop()  # coupe un sifflement éventuel
+    clock = pygame.time.Clock()
+    start = pygame.time.get_ticks()
+
+    while pygame.time.get_ticks() - start < duration:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        draw_background(screen)
+        draw_border(screen)
+        snake.draw(screen, stunned=True)
+        apple.draw(screen)
+        display_score(screen, score)
+        pygame.display.flip()
+        clock.tick(60)
+
+
 def main():
 
     clock = pygame.time.Clock()
@@ -252,6 +303,7 @@ def main():
                             main()
 
         if not snake.move():
+            stun_animation(snake, apple, score)
             gameover_sound.play()
             game_over_screen(screen, score)
             pygame.display.flip()
