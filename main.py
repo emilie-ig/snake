@@ -4,13 +4,15 @@ import sys
 
 pygame.init()
 
-SCREEN_WIDTH = 750
-SCREEN_HEIGHT = 750
+SCREEN_WIDTH = 500
+SCREEN_HEIGHT = 500
 CELL_SIZE = 25
 GRID_SIZE = SCREEN_WIDTH // CELL_SIZE
 FPS = 10
 
-SNAKE_COLOR = (1, 252, 128)
+SNAKE_HEAD_COLOR = (1, 252, 128)
+SNAKE_TAIL_COLOR = (0, 140, 80)
+TONGUE_COLOR = (230, 30, 60)
 BACKGROUND_COLOR = (104, 56, 0)
 APPLE_COLOR = (250, 12, 4)
 BORDER_COLOR = (232, 168, 0)
@@ -21,10 +23,15 @@ pygame.display.set_caption("SNAKE")
 
 font = pygame.font.Font(None, 36)
 
+def lerp_color(c1, c2, t):
+    """Mélange deux couleurs. t=0 donne c1, t=1 donne c2."""
+    return tuple(int(a + (b - a) * t) for a, b in zip(c1, c2))
+
+
 class Snake:
     def __init__(self):
-        self.positions = [(5,5), (4,5), (3,5)]
-        self.direction = (1,0)
+        self.positions = [(5, 5), (4, 5), (3, 5)]
+        self.direction = (1, 0)
         self.grow = False
 
     def move(self):
@@ -32,14 +39,14 @@ class Snake:
         delta_x, delta_y = self.direction
         new_head = (head_x + delta_x, head_y + delta_y)
 
-        if(new_head in self.positions or 
-           not (1<= new_head[0] < GRID_SIZE - 1 and 1<= new_head[1 < GRID_SIZE -1])):
+        if (new_head in self.positions or
+                not (1 <= new_head[0] < GRID_SIZE - 1 and 1 <= new_head[1] < GRID_SIZE - 1)):
             return False
 
         self.positions.insert(0, new_head)
 
         if not self.grow:
-            self.positions.pop() #n'a pas mangé de pomme, donc on supprime pas la queue
+            self.positions.pop()  # n'a pas mangé de pomme, donc on supprime la queue
         else:
             self.grow = False
 
@@ -54,35 +61,89 @@ class Snake:
         self.grow = True
 
     def draw(self, surface):
-        for x,y in self.positions:
-            rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(surface, SNAKE_COLOR, rect)
+        n = len(self.positions)
+        pad = max(1, CELL_SIZE // 10) # petit espace autour de chaque segment
+        radius = CELL_SIZE // 3 # arrondi des segments
+        inner = CELL_SIZE - 2 * pad
+        self.draw_tongue(surface)
 
+        # On dessine de la queue vers la tête pour que la tête soit au-dessus
+        for i in range(n - 1, -1, -1):
+            x, y = self.positions[i]
+            t = i / max(n - 1, 1)
+            color = lerp_color(SNAKE_HEAD_COLOR, SNAKE_TAIL_COLOR, t)
+            dark = lerp_color(color, (0, 0, 0), 0.25)
+
+            px, py = x * CELL_SIZE, y * CELL_SIZE
+
+            # Segment arrondi (la tête est un peu plus grosse)
+            if i == 0:
+                rect = pygame.Rect(px, py, CELL_SIZE, CELL_SIZE)
+                pygame.draw.rect(surface, color, rect, border_radius=CELL_SIZE // 2 - 2)
+            else:
+                rect = pygame.Rect(px + pad, py + pad, inner, inner)
+                pygame.draw.rect(surface, color, rect, border_radius=radius)
+
+                # Raccord avec le segment précédent (côté tête) pour un corps continu
+                nx, ny = self.positions[i - 1]
+                if nx != x:  # voisin horizontal
+                    left = min(x, nx) * CELL_SIZE + CELL_SIZE // 2
+                    connector = pygame.Rect(left, py + pad, CELL_SIZE, inner)
+                else:        # voisin vertical
+                    top = min(y, ny) * CELL_SIZE + CELL_SIZE // 2
+                    connector = pygame.Rect(px + pad, top, inner, CELL_SIZE)
+                pygame.draw.rect(surface, color, connector)
+
+                # Petite écaille au centre
+                center = (px + CELL_SIZE // 2, py + CELL_SIZE // 2)
+                pygame.draw.circle(surface, dark, center, max(2, CELL_SIZE // 8))
+
+        self.draw_head_details(surface)
+
+    def draw_tongue(self, surface):
+        # La langue sort 350 ms toutes les 1,5 s
+        if pygame.time.get_ticks() % 1500 > 350:
+            return
+ 
         head_x, head_y = self.positions[0]
+        dx, dy = self.direction
+        cx = head_x * CELL_SIZE + CELL_SIZE / 2
+        cy = head_y * CELL_SIZE + CELL_SIZE / 2
+        head_radius = CELL_SIZE
+ 
+        start = (cx + dx * head_radius * 0.6, cy + dy * head_radius * 0.6)
+        tip = (cx + dx * (head_radius + CELL_SIZE * 0.5),
+               cy + dy * (head_radius + CELL_SIZE * 0.5))
+        width =3 
+        pygame.draw.line(surface, TONGUE_COLOR, start, tip, width)
+ 
+        # Bout fourchu (-dy, dx) est perpendiculaire à la direction
+        fork = CELL_SIZE * 0.2
+        for sign in (-1, 1):
+            end = (tip[0] + dx * fork + (-dy) * fork * sign,
+                   tip[1] + dy * fork + dx * fork * sign)
+            pygame.draw.line(surface, TONGUE_COLOR, tip, end, width)
 
-        # Position de base de la tête en pixels
-        head_pixel_x = head_x * CELL_SIZE
-        head_pixel_y = head_y * CELL_SIZE
 
-        # Position des yeux selon la direction
-        if self.direction == (1, 0):  # droite
-            eye1 = pygame.Rect(head_pixel_x + 15, head_pixel_y + 5, 5, 5)
-            eye2 = pygame.Rect(head_pixel_x + 15, head_pixel_y + 15, 5, 5)
+    def draw_head_details(self, surface):
+        head_x, head_y = self.positions[0]
+        dx, dy = self.direction
+        cx = head_x * CELL_SIZE + CELL_SIZE / 2
+        cy = head_y * CELL_SIZE + CELL_SIZE / 2
 
-        elif self.direction == (-1, 0):  # gauche
-            eye1 = pygame.Rect(head_pixel_x + 5, head_pixel_y + 5, 5, 5)
-            eye2 = pygame.Rect(head_pixel_x + 5, head_pixel_y + 15, 5, 5)
+        forward = CELL_SIZE * 0.15 # décalage des yeux vers l'avant
+        side = CELL_SIZE * 0.24 # écart entre les deux yeux
+        eye_radius = max(3, int(CELL_SIZE * 0.17))
+        pupil_radius = max(2, int(CELL_SIZE * 0.09))
 
-        elif self.direction == (0, -1):  # haut
-            eye1 = pygame.Rect(head_pixel_x + 5, head_pixel_y + 5, 5, 5)
-            eye2 = pygame.Rect(head_pixel_x + 15, head_pixel_y + 5, 5, 5)
-
-        else:  # bas
-            eye1 = pygame.Rect(head_pixel_x + 5, head_pixel_y + 15, 5, 5)
-            eye2 = pygame.Rect(head_pixel_x + 15, head_pixel_y + 15, 5, 5)
-
-        pygame.draw.rect(surface, (0, 0, 0), eye1)
-        pygame.draw.rect(surface, (0, 0, 0), eye2)
+        # (-dy, dx) est le vecteur perpendiculaire à la direction
+        for sign in (-1, 1):
+            ex = cx + dx * forward + (-dy) * side * sign
+            ey = cy + dy * forward + dx * side * sign
+            pygame.draw.circle(surface, (255, 255, 255), (int(ex), int(ey)), eye_radius)
+            # La pupille regarde dans la direction du serpent
+            pupil = (int(ex + dx * 2), int(ey + dy * 2))
+            pygame.draw.circle(surface, (0, 0, 0), pupil, pupil_radius)
 
 
 class Apple:
@@ -96,10 +157,33 @@ class Apple:
                 return position
 
     def draw(self, surface):
-        rect = pygame.Rect(self.positions[0] * CELL_SIZE, self.positions[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-        pygame.draw.rect(surface, APPLE_COLOR, rect)
+        x = self.positions[0] * CELL_SIZE
+        y = self.positions[1] * CELL_SIZE
+        c = CELL_SIZE
 
-        
+        # Pomme : elle remplit presque toute la case
+        center = (x + c // 2, y + c // 2 + c // 12)
+        radius = c // 2 - 1
+        pygame.draw.circle(surface, APPLE_COLOR, center, radius)
+
+        # Ombre en bas à droite pour donner du volume
+        shade = lerp_color(APPLE_COLOR, (0, 0, 0), 0.3)
+        pygame.draw.circle(surface, shade, (center[0] + c // 10, center[1] + c // 10), radius // 2)
+        pygame.draw.circle(surface, APPLE_COLOR, (center[0] - c // 40, center[1] - c // 40), radius - c // 8)
+
+        # Reflet en haut à gauche
+        shine = pygame.Rect(x + c // 4, y + c // 4, c // 5, c // 4)
+        pygame.draw.ellipse(surface, (255, 200, 200), shine)
+
+        # Tige
+        stem_start = (x + c // 2, y + c // 4)
+        stem_end = (x + c // 2 + c // 12, y + c // 20)
+        pygame.draw.line(surface, (90, 50, 10), stem_start, stem_end, max(2, c // 12))
+
+        # Feuille
+        leaf = pygame.Rect(x + c // 2 + c // 12, y + c // 20, c // 3, c // 5)
+        pygame.draw.ellipse(surface, (50, 180, 50), leaf)
+
 def draw_background(surface):
     surface.fill(BACKGROUND_COLOR)
 
@@ -181,7 +265,8 @@ def main():
         pygame.display.flip()
         clock.tick(FPS)
 
-        if len(snake.positions) == GRID_SIZE * GRID_SIZE:
+        # La zone jouable fait (GRID_SIZE - 2) cases de côté
+        if len(snake.positions) == (GRID_SIZE - 2) * (GRID_SIZE - 2):
             victory_screen(screen, score)
             pygame.display.flip()
             running = False
