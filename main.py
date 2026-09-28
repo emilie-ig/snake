@@ -3,6 +3,7 @@ import random
 import sys
 
 pygame.init()
+pygame.mixer.init()
 
 SCREEN_WIDTH = 500
 SCREEN_HEIGHT = 500
@@ -17,6 +18,15 @@ BACKGROUND_COLOR = (104, 56, 0)
 APPLE_COLOR = (250, 12, 4)
 BORDER_COLOR = (232, 168, 0)
 SCORE_COLOR = (248, 252, 248)
+
+apple_sound = pygame.mixer.Sound("sounds/apple_bite.mp3")
+gameover_sound = pygame.mixer.Sound("sounds/gameover.mp3")
+sss_sound = pygame.mixer.Sound("sounds/ssss.mp3")
+victory_sound = pygame.mixer.Sound("sounds/victory.mp3")
+
+TONGUE_PERIOD = 3500 # temps entre deux cycles (ms)
+TONGUE_DELAY = 1000 # silence au début du son (ms)
+TONGUE_DURATION = 500 # durée de la langue sortie (ms)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("SNAKE")
@@ -97,29 +107,35 @@ class Snake:
         self.draw_head_details(surface)
 
     def draw_tongue(self, surface):
-        # La langue sort 350 ms toutes les 1,5 s
-        if pygame.time.get_ticks() % 1500 > 350:
+        t = pygame.time.get_ticks() % TONGUE_PERIOD
+
+        #on lance le son (la 1re seconde est muette)
+        if t < getattr(self, "last_t", TONGUE_PERIOD):
+            sss_sound.play(maxtime=TONGUE_DELAY + TONGUE_DURATION)
+        self.last_t = t
+
+        # La langue sort au moment où le son devient audible
+        if not (TONGUE_DELAY <= t <= TONGUE_DELAY + TONGUE_DURATION):
             return
- 
+
         head_x, head_y = self.positions[0]
         dx, dy = self.direction
         cx = head_x * CELL_SIZE + CELL_SIZE / 2
         cy = head_y * CELL_SIZE + CELL_SIZE / 2
         head_radius = CELL_SIZE
- 
+
         start = (cx + dx * head_radius * 0.6, cy + dy * head_radius * 0.6)
         tip = (cx + dx * (head_radius + CELL_SIZE * 0.5),
-               cy + dy * (head_radius + CELL_SIZE * 0.5))
-        width =3 
+            cy + dy * (head_radius + CELL_SIZE * 0.5))
+        width = 3
         pygame.draw.line(surface, TONGUE_COLOR, start, tip, width)
- 
+
         # Bout fourchu (-dy, dx) est perpendiculaire à la direction
         fork = CELL_SIZE * 0.2
         for sign in (-1, 1):
             end = (tip[0] + dx * fork + (-dy) * fork * sign,
-                   tip[1] + dy * fork + dx * fork * sign)
+                tip[1] + dy * fork + dx * fork * sign)
             pygame.draw.line(surface, TONGUE_COLOR, tip, end, width)
-
 
     def draw_head_details(self, surface):
         head_x, head_y = self.positions[0]
@@ -236,6 +252,7 @@ def main():
                             main()
 
         if not snake.move():
+            gameover_sound.play()
             game_over_screen(screen, score)
             pygame.display.flip()
             running = False
@@ -249,6 +266,7 @@ def main():
                             main()
 
         if snake.positions[0] == apple.positions:
+            apple_sound.play()
             snake.grow_snake()
             apple = Apple(snake)
             score += 1
@@ -263,6 +281,7 @@ def main():
 
         # La zone jouable fait (GRID_SIZE - 2) cases de côté
         if len(snake.positions) == (GRID_SIZE - 2) * (GRID_SIZE - 2):
+            victory_sound.play()
             victory_screen(screen, score)
             pygame.display.flip()
             running = False
@@ -274,5 +293,6 @@ def main():
                     elif event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
                             main()
+
 
 main()
