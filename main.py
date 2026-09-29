@@ -156,7 +156,7 @@ def run_game(mode_key):
             # Fait apparaître la pomme spéciale du mode, si ce n'est pas déjà fait
             if mode_key == "golden" and extra_apple is None and random.random() < 0.15:
                 extra_apple = GoldenApple(snake, duration_ms=5000)
-            elif mode_key == "ice_spicy" and extra_apple is None and random.random() < 0.2:
+            elif mode_key == "ice_spicy" and extra_apple is None and random.random() < 0.8:
                 if random.random() < 0.5:
                     extra_apple = IceApple(snake)
                 else:
@@ -177,6 +177,8 @@ def run_game(mode_key):
             snake.grow_snake()
             score += 1
             snake.speed_multiplier = 1.6  # plus lent
+            snake.frozen = True
+            snake.boosted = False
             speed_effect_end = pygame.time.get_ticks() + SPEED_EFFECT_DURATION
             extra_apple = None
 
@@ -186,6 +188,8 @@ def run_game(mode_key):
             spawn_particles(extra_apple.positions, color=CHILI_APPLE_COLOR)
             snake.grow_snake()
             score += 2  # x2 points
+            snake.boosted = True
+            snake.frozen = False
             snake.speed_multiplier = 0.6  # plus rapide
             speed_effect_end = pygame.time.get_ticks() + SPEED_EFFECT_DURATION
             extra_apple = None
@@ -197,6 +201,8 @@ def run_game(mode_key):
         # Fin de l'effet de vitesse
         if speed_effect_end and pygame.time.get_ticks() > speed_effect_end:
             snake.speed_multiplier = 1.0
+            snake.boosted = False
+            snake.frozen = False
             speed_effect_end = 0
 
         hx, hy = snake.positions[0]

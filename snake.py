@@ -1,7 +1,10 @@
 import pygame
 import math
+import random
 from config import (
     GRID_SIZE, CELL_SIZE, SNAKE_HEAD_COLOR, SNAKE_TAIL_COLOR,
+    SNAKE_BOOST_HEAD_COLOR, SNAKE_BOOST_TAIL_COLOR,
+    SNAKE_FROZEN_HEAD_COLOR, SNAKE_FROZEN_TAIL_COLOR,
     TONGUE_COLOR, TONGUE_PERIOD, TONGUE_DELAY, TONGUE_DURATION,
     sss_sound, lerp_color
 )
@@ -14,6 +17,8 @@ class Snake:
         self.grow = False
         self.mouth_open = False
         self.speed_multiplier = 1.0
+        self.boosted = False # True pendant l'effet piment
+        self.frozen = False # True pendant l'effet glace
 
     def move(self, walls=()):
         head_x, head_y = self.positions[0]
@@ -56,15 +61,26 @@ class Snake:
         inner = CELL_SIZE - 2 * pad
         if not stunned:
             self.draw_tongue(surface)
+        if self.frozen:
+            self.draw_frost(surface)
 
         # On dessine de la queue vers la tête pour que la tête soit au-dessus
         for i in range(n - 1, -1, -1):
             x, y = self.positions[i]
             t = i / max(n - 1, 1)
-            color = lerp_color(SNAKE_HEAD_COLOR, SNAKE_TAIL_COLOR, t)
+            if self.boosted:
+                color = lerp_color(SNAKE_BOOST_HEAD_COLOR, SNAKE_BOOST_TAIL_COLOR, t)
+            elif self.frozen:
+                color = lerp_color(SNAKE_FROZEN_HEAD_COLOR, SNAKE_FROZEN_TAIL_COLOR, t)
+            else:
+                color = lerp_color(SNAKE_HEAD_COLOR, SNAKE_TAIL_COLOR, t)
             dark = lerp_color(color, (0, 0, 0), 0.25)
 
             px, py = x * CELL_SIZE, y * CELL_SIZE
+            if self.boosted:
+                shake = 2
+                px += random.randint(-shake, shake)
+                py += random.randint(-shake, shake)
 
             # Segment arrondi (la tête est un peu plus grosse)
             if i == 0:
@@ -122,23 +138,49 @@ class Snake:
                 tip[1] + dy * fork + dx * fork * sign)
             pygame.draw.line(surface, TONGUE_COLOR, tip, end, width)
 
+    def draw_frost(self, surface):
+        head_x, head_y = self.positions[0]
+        cx = head_x * CELL_SIZE + CELL_SIZE / 2
+        cy = head_y * CELL_SIZE + CELL_SIZE / 2
+
+        # 3 éclats de givre qui montent lentement et s'estompent en boucle
+        now = pygame.time.get_ticks()
+        for k in range(3):
+            cycle = (now + k * 700) % 2100  # décalés dans le temps
+            progress = cycle / 2100
+            fx = cx + math.sin(now / 400 + k) * CELL_SIZE * 0.5
+            fy = cy - progress * CELL_SIZE * 1.5
+            alpha = max(0, 255 - int(progress * 255))
+            r = max(1, int(3 * (1 - progress)))
+
+            flake = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+            pygame.draw.circle(flake, (200, 235, 255, alpha), (r, r), r)
+            surface.blit(flake, (int(fx - r), int(fy - r)))
+
     def draw_head_details(self, surface):
         head_x, head_y = self.positions[0]
         dx, dy = self.direction
         cx = head_x * CELL_SIZE + CELL_SIZE / 2
         cy = head_y * CELL_SIZE + CELL_SIZE / 2
 
+        if self.boosted:
+            head_color = SNAKE_BOOST_HEAD_COLOR
+        elif self.frozen:
+            head_color = SNAKE_FROZEN_HEAD_COLOR
+        else:
+            head_color = SNAKE_HEAD_COLOR
+
         if self.mouth_open:
             # Bajoues : deux joues rondes sur les côtés de la tête
             for sign in (-1, 1):
                 jx = cx + dx * CELL_SIZE * 0.12 + (-dy) * CELL_SIZE * 0.38 * sign
                 jy = cy + dy * CELL_SIZE * 0.12 + dx * CELL_SIZE * 0.38 * sign
-                pygame.draw.circle(surface, SNAKE_HEAD_COLOR, (int(jx), int(jy)), int(CELL_SIZE * 0.32))
+                pygame.draw.circle(surface, head_color, (int(jx), int(jy)), int(CELL_SIZE * 0.32))
 
             # Museau : quelques pixels de plus devant, au niveau de la bouche
             mux = int(cx + dx * CELL_SIZE * 0.3)
             muy = int(cy + dy * CELL_SIZE * 0.3)
-            pygame.draw.circle(surface, SNAKE_HEAD_COLOR, (mux, muy), int(CELL_SIZE * 0.45))
+            pygame.draw.circle(surface, head_color, (mux, muy), int(CELL_SIZE * 0.45))
                 
             # Bouche
             mx = cx + dx * CELL_SIZE * 0.5
