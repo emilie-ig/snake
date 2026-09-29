@@ -2,11 +2,12 @@ import pygame
 import sys
 import random
 from config import (
-    FPS, GRID_SIZE, screen, APPLE_COLOR, GOLDEN_APPLE_COLOR,
-    apple_sound, golden_sound, gameover_sound, victory_sound
+    FPS, GRID_SIZE, CELL_SIZE, WALL_COLOR, screen,
+    APPLE_COLOR, GOLDEN_APPLE_COLOR, ICE_APPLE_COLOR, CHILI_APPLE_COLOR, SPEED_EFFECT_DURATION,
+    apple_sound, golden_sound, ice_sound, chili_sound, gameover_sound, victory_sound
 )
 from snake import Snake
-from apple import Apple, GoldenApple
+from apple import Apple, GoldenApple, IceApple, ChiliApple
 from fx import particles, spawn_particles, draw_particles
 from ui import (
     draw_background, draw_border, display_score,
@@ -62,14 +63,29 @@ def run_countdown(screen, snake, apple, golden_apple, score):
             pygame.display.flip()
             clock.tick(FPS)
 
+def generate_walls(snake, count=15):
+    walls = []
+    while len(walls) < count:
+        pos = (random.randint(2, GRID_SIZE - 3), random.randint(2, GRID_SIZE - 3))
+        if pos not in snake.positions and pos not in walls:
+            walls.append(pos)
+    return walls
 
-def main():
-    start_screen()
+
+def draw_walls(surface, walls):
+    for (x, y) in walls:
+        rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+        pygame.draw.rect(surface, WALL_COLOR, rect, border_radius=4)
+
+
+def run_game(mode_key):
     particles.clear()
     clock = pygame.time.Clock()
     snake = Snake()
     apple = Apple(snake)
-    golden_apple = None
+    extra_apple = None # pomme dorée, glace ou piment, selon le mode
+    walls = generate_walls(snake) if mode_key == "walls" else []
+    speed_effect_end = 0
     score = 0
 
     direction_queue = []
@@ -84,7 +100,7 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:
                     if paused:
-                        run_countdown(screen, snake, apple, golden_apple, score)
+                        run_countdown(screen, snake, apple, extra_apple, score)
                         paused = False
                     else:
                         paused = True
@@ -129,7 +145,7 @@ def main():
                         if event.key == pygame.K_SPACE:
                             main()
 
-        # Pomme classique
+        # --- Pomme classique, toujours présente ---
         if snake.positions[0] == apple.positions:
             apple_sound.play()
             spawn_particles(apple.positions, color=APPLE_COLOR)
@@ -137,58 +153,98 @@ def main():
             apple = Apple(snake)
             score += 1
 
-            if golden_apple is None and random.random() < 0.15:
-                golden_apple = GoldenApple(snake, duration_ms=5000)
+            # Fait apparaître la pomme spéciale du mode, si ce n'est pas déjà fait
+            if mode_key == "golden" and extra_apple is None and random.random() < 0.15:
+                extra_apple = GoldenApple(snake, duration_ms=5000)
+            elif mode_key == "ice_spicy" and extra_apple is None and random.random() < 0.2:
+                if random.random() < 0.5:
+                    extra_apple = IceApple(snake)
+                else:
+                    extra_apple = ChiliApple(snake)
 
-        # Pomme dorée
-        elif golden_apple and snake.positions[0] == golden_apple.positions:
+        # --- Pomme dorée ---
+        elif mode_key == "golden" and extra_apple and snake.positions[0] == extra_apple.positions:
             golden_sound.play()
-            spawn_particles(golden_apple.positions, color=GOLDEN_APPLE_COLOR)
+            spawn_particles(extra_apple.positions, color=GOLDEN_APPLE_COLOR)
             snake.grow_snake()
             score += 3
-            golden_apple = None
+            extra_apple = None
 
-        if golden_apple and golden_apple.is_expired():
-            golden_apple = None
+        # --- Pomme glace ---
+        elif mode_key == "ice_spicy" and isinstance(extra_apple, IceApple) and snake.positions[0] == extra_apple.positions:
+            ice_sound.play()
+            spawn_particles(extra_apple.positions, color=ICE_APPLE_COLOR)
+            snake.grow_snake()
+            score += 1
+            snake.speed_multiplier = 1.6  # plus lent
+            speed_effect_end = pygame.time.get_ticks() + SPEED_EFFECT_DURATION
+            extra_apple = None
+
+        # --- Pomme piment ---
+        elif mode_key == "ice_spicy" and isinstance(extra_apple, ChiliApple) and snake.positions[0] == extra_apple.positions:
+            chili_sound.play()
+            spawn_particles(extra_apple.positions, color=CHILI_APPLE_COLOR)
+            snake.grow_snake()
+            score += 2  # x2 points
+            snake.speed_multiplier = 0.6  # plus rapide
+            speed_effect_end = pygame.time.get_ticks() + SPEED_EFFECT_DURATION
+            extra_apple = None
+
+        # Golden expire toute seule après un moment
+        if mode_key == "golden" and extra_apple and extra_apple.is_expired():
+            extra_apple = None
+
+        # Fin de l'effet de vitesse
+        if speed_effect_end and pygame.time.get_ticks() > speed_effect_end:
+            snake.speed_multiplier = 1.0
+            speed_effect_end = 0
 
         hx, hy = snake.positions[0]
         ax, ay = apple.positions
         dist_apple = abs(hx - ax) + abs(hy - ay)
-        
-        if golden_apple:
-            gx, gy = golden_apple.positions
-            dist_golden = abs(hx - gx) + abs(hy - gy)
-            snake.mouth_open = min(dist_apple, dist_golden) <= 3
+
+        if extra_apple:
+            ex_, ey_ = extra_apple.positions
+            dist_extra = abs(hx - ex_) + abs(hy - ey_)
+            snake.mouth_open = min(dist_apple, dist_extra) <= 3
         else:
             snake.mouth_open = dist_apple <= 3
 
         draw_background(screen)
         draw_border(screen)
+        if mode_key == "walls":
+            draw_walls(screen, walls)
         snake.draw(screen)
         apple.draw(screen)
-        
-        if golden_apple:
-            golden_apple.draw(screen)
+
+        if extra_apple:
+            extra_apple.draw(screen)
 
         draw_particles(screen)
         display_score(screen, score)
         pygame.display.flip()
-        clock.tick(FPS)
+        clock.tick(FPS / snake.speed_multiplier)
 
         if len(snake.positions) == (GRID_SIZE - 2) * (GRID_SIZE - 2):
             victory_sound.play()
             victory_screen(screen, score)
             pygame.display.flip()
-            running = False
-            while True:
+            waiting = True
+            while waiting:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
-                    elif event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_SPACE:
-                            main()
+                    elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                        waiting = False
+            main()
+            return
 
+def main():
+    mode_key = start_screen()
+    if mode_key == "custom":
+        mode_key = "classic"  # pas encore d'écran "sur mesure"
+    run_game(mode_key)
 
 if __name__ == "__main__":
     main()

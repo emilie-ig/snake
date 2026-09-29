@@ -13,14 +13,23 @@ class Snake:
         self.direction = (1, 0)
         self.grow = False
         self.mouth_open = False
+        self.speed_multiplier = 1.0
 
-    def move(self):
+    def move(self, walls=()):
         head_x, head_y = self.positions[0]
         delta_x, delta_y = self.direction
         new_head = (head_x + delta_x, head_y + delta_y)
 
-        if (new_head in self.positions or
-                not (1 <= new_head[0] < GRID_SIZE - 1 and 1 <= new_head[1] < GRID_SIZE - 1)):
+        #collision avec son corps
+        if new_head in self.positions :
+            return False
+
+        #collision avec un mur
+        if new_head in walls:
+            return False
+
+        #collision avec une bordure
+        if not (1 <= new_head[0] < GRID_SIZE - 1 and 1 <= new_head[1] < GRID_SIZE - 1):
             return False
 
         self.positions.insert(0, new_head)

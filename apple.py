@@ -1,6 +1,6 @@
 import pygame
 import random
-from config import GRID_SIZE, CELL_SIZE, APPLE_COLOR, GOLDEN_APPLE_COLOR, lerp_color
+from config import GRID_SIZE, CELL_SIZE, APPLE_COLOR, GOLDEN_APPLE_COLOR, CHILI_APPLE_COLOR, ICE_APPLE_COLOR, lerp_color
 
 
 class Apple:
@@ -77,3 +77,27 @@ class GoldenApple(Apple):
         # Feuille
         leaf = pygame.Rect(x + c // 2 + c // 12, y + c // 20, c // 3, c // 5)
         pygame.draw.ellipse(surface, (50, 180, 50), leaf)
+
+class IceApple(Apple):
+    """Ralentit le serpent pendant quelques secondes."""
+    def draw(self, surface):
+        x = self.positions[0] * CELL_SIZE
+        y = self.positions[1] * CELL_SIZE
+        c = CELL_SIZE
+        center = (x + c // 2, y + c // 2)
+        pygame.draw.circle(surface, ICE_APPLE_COLOR, center, c // 2 - 1)
+        shine = pygame.Rect(x + c // 4, y + c // 4, c // 5, c // 4)
+        pygame.draw.ellipse(surface, (230, 245, 255), shine)
+
+
+class ChiliApple(Apple):
+    """Accélère le serpent et vaut plus de points."""
+    def draw(self, surface):
+        x = self.positions[0] * CELL_SIZE
+        y = self.positions[1] * CELL_SIZE
+        c = CELL_SIZE
+        # Corps du piment : un triangle pointant vers le bas
+        points = [(x + c * 0.2, y + c * 0.25), (x + c * 0.8, y + c * 0.25), (x + c * 0.5, y + c * 0.85)]
+        pygame.draw.polygon(surface, CHILI_APPLE_COLOR, points)
+        # Petite tige verte
+        pygame.draw.line(surface, (50, 150, 50), (x + c * 0.5, y + c * 0.25), (x + c * 0.5, y + c * 0.1), 3)

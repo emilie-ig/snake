@@ -17,12 +17,16 @@ BACKGROUND_COLOR = (92, 48, 20)
 BACKGROUND_COLOR_2 = (100, 54, 22)
 APPLE_COLOR = (250, 12, 4)
 GOLDEN_APPLE_COLOR = (255, 215, 0)
+ICE_APPLE_COLOR = (100, 180, 255)
+CHILI_APPLE_COLOR = (255, 90, 20)
+WALL_COLOR = (80, 80, 90)
 BORDER_COLOR = (0, 140, 80)
 SCORE_COLOR = (248, 252, 248)
 
 TONGUE_PERIOD = 3500 # temps entre deux cycles (ms)
 TONGUE_DELAY = 1000 # silence au début du son (ms)
 TONGUE_DURATION = 500 # durée de la langue sortie (ms)
+SPEED_EFFECT_DURATION = 4000
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("SNAKE")
@@ -38,11 +42,19 @@ gameover_sound = pygame.mixer.Sound("assets/sounds/gameover.mp3")
 sss_sound = pygame.mixer.Sound("assets/sounds/ssss.mp3")
 victory_sound = pygame.mixer.Sound("assets/sounds/victory.mp3")
 boing_sound = pygame.mixer.Sound("assets/sounds/boingg.mp3")
-
+ice_sound = apple_sound
+chili_sound = apple_sound
 
 def lerp_color(c1, c2, t):
     """Mélange deux couleurs. t=0 donne c1, t=1 donne c2."""
     return tuple(int(a + (b - a) * t) for a, b in zip(c1, c2))
+
+GAME_MODES = {
+    "classic":   {"golden": False, "ice_spicy": False, "walls": False},
+    "golden":    {"golden": True,  "ice_spicy": False, "walls": False},
+    "ice_spicy": {"golden": False, "ice_spicy": True,  "walls": False},
+    "walls":     {"golden": False, "ice_spicy": False, "walls": True},
+}
 
 # Dictionnaire de traduction
 LANGUAGES = {
