@@ -130,7 +130,7 @@ def run_game(mode_key):
             next_direction = direction_queue.pop(0)
             snake.change_direction(next_direction)
 
-        if not snake.move():
+        if not snake.move(walls):
             stun_animation(snake, apple, score)
             gameover_sound.play()
             game_over_screen(screen, score)

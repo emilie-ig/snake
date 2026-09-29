@@ -96,8 +96,26 @@ class ChiliApple(Apple):
         x = self.positions[0] * CELL_SIZE
         y = self.positions[1] * CELL_SIZE
         c = CELL_SIZE
-        # Corps du piment : un triangle pointant vers le bas
-        points = [(x + c * 0.2, y + c * 0.25), (x + c * 0.8, y + c * 0.25), (x + c * 0.5, y + c * 0.85)]
-        pygame.draw.polygon(surface, CHILI_APPLE_COLOR, points)
-        # Petite tige verte
-        pygame.draw.line(surface, (50, 150, 50), (x + c * 0.5, y + c * 0.25), (x + c * 0.5, y + c * 0.1), 3)
+
+        # Corps du piment : forme incurvée avec plusieurs points
+        body_points = [
+            (x + c * 0.35, y + c * 0.25),  # Haut gauche
+            (x + c * 0.70, y + c * 0.25),  # Haut droit
+            (x + c * 0.75, y + c * 0.50),  # Courbe droite
+            (x + c * 0.55, y + c * 0.85),  # Pointe incurvée
+            (x + c * 0.40, y + c * 0.60),  # Creux gauche
+        ]
+        pygame.draw.polygon(surface, CHILI_APPLE_COLOR, body_points)
+
+        # Chapeau vert (la tige et le pédoncule du piment)
+        calyx_points = [
+            (x + c * 0.30, y + c * 0.22),
+            (x + c * 0.75, y + c * 0.22),
+            (x + c * 0.52, y + c * 0.35),
+        ]
+        pygame.draw.polygon(surface, (50, 180, 50), calyx_points)
+
+        # Tige courbée vers la gauche
+        stem_start = (x + c * 0.52, y + c * 0.22)
+        stem_end = (x + c * 0.35, y + c * 0.08)
+        pygame.draw.line(surface, (40, 140, 40), stem_start, stem_end, max(2, c // 10))
