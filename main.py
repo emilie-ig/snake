@@ -2,7 +2,8 @@ import pygame
 import sys
 import random
 from config import (
-    FPS, GRID_SIZE, CELL_SIZE, WALL_COLOR, screen,
+    FPS, GRID_SIZE, CELL_SIZE, WALL_COLOR, screen, game_screen,
+    GAME_X, GAME_Y, GAME_WIDTH, GAME_HEIGHT,
     APPLE_COLOR, GOLDEN_APPLE_COLOR, ICE_APPLE_COLOR, CHILI_APPLE_COLOR, SPEED_EFFECT_DURATION,
     apple_sound, golden_sound, ice_sound, chili_sound, gameover_sound, victory_sound
 )
@@ -27,6 +28,11 @@ def draw_pause_overlay(screen):
     screen.blit(text, rect)
 
 
+def blit_game():
+    """Place la grille de jeu fixe au centre de la fenêtre."""
+    screen.blit(game_screen, (GAME_X, GAME_Y))
+
+
 def run_countdown(screen, snake, apple, golden_apple, score):
     """Affiche un décompte 3, 2, 1 tout en conservant le fond de jeu."""
     font = pygame.font.SysFont("arial", 72, bold=True)
@@ -41,13 +47,16 @@ def run_countdown(screen, snake, apple, golden_apple, score):
                     sys.exit()
 
             # Redessine l'état actuel du jeu en arrière-plan
-            draw_background(screen)
-            draw_border(screen)
-            snake.draw(screen)
-            apple.draw(screen)
+            draw_background(game_screen)
+            draw_border(game_screen)
+            snake.draw(game_screen)
+            apple.draw(game_screen)
             if golden_apple:
-                golden_apple.draw(screen)
-            draw_particles(screen)
+                golden_apple.draw(game_screen)
+            draw_particles(game_screen)
+
+            screen.fill((45, 28, 18))
+            blit_game()
             display_score(screen, score)
 
             # Voile léger pour la lisibilité
@@ -57,11 +66,12 @@ def run_countdown(screen, snake, apple, golden_apple, score):
 
             # Affichage du chiffre du décompte
             text = font.render(str(count), True, (255, 255, 255))
-            rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+            rect = text.get_rect(center=(GAME_X + GAME_WIDTH // 2, GAME_Y + GAME_HEIGHT // 2))
             screen.blit(text, rect)
 
             pygame.display.flip()
             clock.tick(FPS)
+
 
 def generate_walls(snake, count=15):
     walls = []
@@ -120,6 +130,8 @@ def run_game(mode_key):
 
         # Si le jeu est en pause, on affiche le voile et on fige l'état
         if paused:
+            blit_game()
+            display_score(screen, score)
             draw_pause_overlay(screen)
             pygame.display.flip()
             clock.tick(FPS)
@@ -133,17 +145,89 @@ def run_game(mode_key):
         if not snake.move(walls):
             stun_animation(snake, apple, score)
             gameover_sound.play()
-            game_over_screen(screen, score)
-            pygame.display.flip()
-            running = False
-            while True:
+            
+            selected_button = 0  # 0: Rejouer, 1: Menu principal
+            font_btn = pygame.font.SysFont("arial", 28, bold=True)
+            font_title = pygame.font.SysFont("arial", 56, bold=True)
+            
+            waiting = True
+            while waiting:
+                # 1. Redessine le jeu figé + un voile sombre
+                blit_game()
+                display_score(screen, score)
+                
+                overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 180))  # Voile noir semi-transparent
+                screen.blit(overlay, (0, 0))
+
+                # Texte Game Over
+                txt_gameover = font_title.render("GAME OVER", True, (231, 76, 60))
+                rect_gameover = txt_gameover.get_rect(center=(screen.get_width() // 2, screen.get_height() // 3))
+                screen.blit(txt_gameover, rect_gameover)
+
+                # Dimensions et positions des boutons
+                center_x = screen.get_width() // 2
+                center_y = screen.get_height() // 2 + 30
+                btn_w, btn_h = 220, 50
+                
+                restart_rect = pygame.Rect(center_x - btn_w // 2, center_y, btn_w, btn_h)
+                menu_rect = pygame.Rect(center_x - btn_w // 2, center_y + 65, btn_w, btn_h)
+
+                # Couleurs des boutons
+                green_color = (46, 204, 113) if selected_button == 0 else (39, 174, 96)
+                menu_color = (231, 76, 60) if selected_button == 1 else (192, 57, 43)
+
+                # Contour de sélection
+                if selected_button == 0:
+                    pygame.draw.rect(screen, (255, 255, 255), restart_rect.inflate(6, 6), border_radius=10)
+                else:
+                    pygame.draw.rect(screen, (255, 255, 255), menu_rect.inflate(6, 6), border_radius=10)
+
+                # Dessin des boutons
+                pygame.draw.rect(screen, green_color, restart_rect, border_radius=8)
+                pygame.draw.rect(screen, menu_color, menu_rect, border_radius=8)
+
+                txt_restart = font_btn.render("Rejouer", True, (255, 255, 255))
+                txt_menu = font_btn.render("Menu Principal", True, (255, 255, 255))
+
+                screen.blit(txt_restart, txt_restart.get_rect(center=restart_rect.center))
+                screen.blit(txt_menu, txt_menu.get_rect(center=menu_rect.center))
+
+                pygame.display.flip()
+                
+                # 2. Gestion des événements
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
+
+                    elif event.type == pygame.MOUSEMOTION:
+                        if restart_rect.collidepoint(event.pos):
+                            selected_button = 0
+                        elif menu_rect.collidepoint(event.pos):
+                            selected_button = 1
+
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        if event.button == 1:
+                            if restart_rect.collidepoint(event.pos):
+                                run_game(mode_key)
+                                return
+                            elif menu_rect.collidepoint(event.pos):
+                                main()
+                                return
+
                     elif event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_SPACE:
+                        if event.key in (pygame.K_UP, pygame.K_DOWN):
+                            selected_button = 1 - selected_button
+                        elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                            if selected_button == 0:
+                                run_game(mode_key)
+                            else:
+                                main()
+                            return
+                        elif event.key == pygame.K_ESCAPE:
                             main()
+                            return
 
         # --- Pomme classique, toujours présente ---
         if snake.positions[0] == apple.positions:
@@ -216,17 +300,20 @@ def run_game(mode_key):
         else:
             snake.mouth_open = dist_apple <= 3
 
-        draw_background(screen)
-        draw_border(screen)
+        draw_background(game_screen)
+        draw_border(game_screen)
         if mode_key == "walls":
-            draw_walls(screen, walls)
-        snake.draw(screen)
-        apple.draw(screen)
+            draw_walls(game_screen, walls)
+        snake.draw(game_screen)
+        apple.draw(game_screen)
 
         if extra_apple:
-            extra_apple.draw(screen)
+            extra_apple.draw(game_screen)
 
-        draw_particles(screen)
+        draw_particles(game_screen)
+
+        screen.fill((45, 28, 18))
+        blit_game()
         display_score(screen, score)
         pygame.display.flip()
         clock.tick(FPS / snake.speed_multiplier)
@@ -246,11 +333,13 @@ def run_game(mode_key):
             main()
             return
 
+
 def main():
     mode_key = start_screen()
     if mode_key == "custom":
         mode_key = "classic"  # pas encore d'écran "sur mesure"
     run_game(mode_key)
+
 
 if __name__ == "__main__":
     main()

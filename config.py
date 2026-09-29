@@ -4,10 +4,18 @@ pygame.init()
 pygame.mixer.init()
 
 # Dimensions et paramètres
-SCREEN_WIDTH = 500
-SCREEN_HEIGHT = 500 
+SCREEN_WIDTH = 900
+SCREEN_HEIGHT = 600
+GAME_WIDTH = 500
+GAME_HEIGHT = 500
 CELL_SIZE = 25
-GRID_SIZE = SCREEN_WIDTH // CELL_SIZE
+GRID_SIZE = GAME_WIDTH // CELL_SIZE
+GAME_X = (SCREEN_WIDTH - (GAME_WIDTH + 40 + 220)) // 2
+GAME_Y = (SCREEN_HEIGHT - GAME_HEIGHT) // 2
+SCORE_PANEL_X = GAME_X + GAME_WIDTH + 40
+SCORE_PANEL_Y = GAME_Y
+SCORE_PANEL_WIDTH = 220
+SCORE_PANEL_HEIGHT = 180
 FPS = 10
 
 SNAKE_HEAD_COLOR = (1, 252, 128)
@@ -33,6 +41,7 @@ TONGUE_DURATION = 500 # durée de la langue sortie (ms)
 SPEED_EFFECT_DURATION = 4000
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+game_screen = pygame.Surface((GAME_WIDTH, GAME_HEIGHT))
 pygame.display.set_caption("SNAKE")
 
 font = pygame.font.Font(None, 36)
