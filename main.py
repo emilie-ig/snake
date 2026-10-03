@@ -9,7 +9,7 @@ from config import (
 )
 from snake import Snake
 from apple import Apple, GoldenApple, IceApple, ChiliApple
-from fx import particles, spawn_particles, draw_particles
+from fx import particles, spawn_particles, draw_particles, spawn_score_popup, draw_score_popups
 from ui import (
     draw_background, draw_border, display_score,
     game_over_screen, victory_screen, stun_animation, start_screen
@@ -278,6 +278,7 @@ def run_game(mode_key):
             spawn_particles(apple.positions, color=APPLE_COLOR)
             snake.grow_snake()
             score += 1
+            spawn_score_popup("+1", APPLE_COLOR)
 
             # Un nouveau mur poppe si on est dans le mode murs
             if mode_key == "walls":
@@ -296,6 +297,7 @@ def run_game(mode_key):
             spawn_particles(golden_apple.positions, color=GOLDEN_APPLE_COLOR)
             snake.grow_snake()
             score += 3
+            spawn_score_popup("+3", GOLDEN_APPLE_COLOR)
             golden_apple = None
 
         # --- Pommes spéciales (Piments et Glaces) ---
@@ -306,7 +308,8 @@ def run_game(mode_key):
                         ice_sound.play()
                         spawn_particles(sp_apple.positions, color=ICE_APPLE_COLOR)
                         snake.grow_snake()
-                        score += 1
+                        score += 2
+                        spawn_score_popup("+2", ICE_APPLE_COLOR)
                         snake.speed_multiplier = 1.6  # plus lent
                         snake.frozen = True
                         snake.boosted = False
@@ -316,6 +319,7 @@ def run_game(mode_key):
                         spawn_particles(sp_apple.positions, color=CHILI_APPLE_COLOR)
                         snake.grow_snake()
                         score += 2
+                        spawn_score_popup("+2", CHILI_APPLE_COLOR)
                         snake.boosted = True
                         snake.frozen = False
                         snake.speed_multiplier = 0.6  # plus rapide
@@ -365,6 +369,7 @@ def run_game(mode_key):
         screen.fill((45, 28, 18))
         blit_game()
         display_score(screen, score)
+        draw_score_popups(screen)
         pygame.display.flip()
         clock.tick(FPS / snake.speed_multiplier)
 
