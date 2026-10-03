@@ -72,14 +72,45 @@ def run_countdown(screen, snake, apple, golden_apple, score):
             pygame.display.flip()
             clock.tick(FPS)
 
-
-def generate_walls(snake, count=15):
+def generate_walls(snake, count=5, safe_radius=3):
+    """Génère un petit nombre de murs éloignés du serpent au démarrage."""
     walls = []
+    hx, hy = snake.positions[0]
+    
     while len(walls) < count:
-        pos = (random.randint(2, GRID_SIZE - 3), random.randint(2, GRID_SIZE - 3))
-        if pos not in snake.positions and pos not in walls:
+        x = random.randint(2, GRID_SIZE - 3)
+        y = random.randint(2, GRID_SIZE - 3)
+        pos = (x, y)
+        
+        # Distance de Manhattan par rapport à la tête du serpent
+        dist_to_head = abs(hx - x) + abs(hy - y)
+        
+        if pos not in snake.positions and pos not in walls and dist_to_head > safe_radius:
             walls.append(pos)
+            
     return walls
+
+def add_wall(snake, apple, walls, golden_apple=None, special_apples=None):
+    """Ajoute un mur supplémentaire sur une case libre."""
+    occupied = set(snake.positions) | set(walls)
+    occupied.add(apple.positions)
+    if golden_apple:
+        occupied.add(golden_apple.positions)
+    if special_apples:
+        occupied.update(sa.positions for sa in special_apples)
+
+    # Zone d'interdiction (ne pas popper juste devant la tête du serpent)
+    hx, hy = snake.positions[0]
+
+    attempts = 0
+    while attempts < 100:
+        x = random.randint(2, GRID_SIZE - 3)
+        y = random.randint(2, GRID_SIZE - 3)
+        pos = (x, y)
+        if pos not in occupied and (abs(hx - x) + abs(hy - y)) > 2:
+            walls.append(pos)
+            break
+        attempts += 1
 
 
 def draw_walls(surface, walls):
@@ -92,13 +123,13 @@ def run_game(mode_key):
     particles.clear()
     clock = pygame.time.Clock()
     snake = Snake()
-    apple = Apple(snake)
     
     # Gestion séparée pour la pomme dorée unique et la liste piment/glace
     golden_apple = None
     special_apples = []  # Contiendra les IceApple et ChiliApple
-    
-    walls = generate_walls(snake) if mode_key == "walls" else []
+
+    walls = generate_walls(snake, count=5) if mode_key == "walls" else []
+    apple = Apple(snake, walls)  # Passer les murs à la pomme
     speed_effect_end = 0
     score = 0
 
@@ -246,8 +277,14 @@ def run_game(mode_key):
             apple_sound.play()
             spawn_particles(apple.positions, color=APPLE_COLOR)
             snake.grow_snake()
-            apple = Apple(snake)
             score += 1
+
+            # Un nouveau mur poppe si on est dans le mode murs
+            if mode_key == "walls":
+                add_wall(snake, apple, walls, golden_apple, special_apples)
+
+            # Réapparition de la pomme (sans popper sur les murs)
+            apple = Apple(snake, walls)
 
             # La pomme dorée n'apparaît que si aucune n'est présente sur le plateau
             if mode_key == "golden" and golden_apple is None and random.random() < 0.2:

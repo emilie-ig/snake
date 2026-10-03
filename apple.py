@@ -4,13 +4,14 @@ from config import GRID_SIZE, CELL_SIZE, APPLE_COLOR, GOLDEN_APPLE_COLOR, CHILI_
 
 
 class Apple:
-    def __init__(self, snake):
-        self.positions = self.random_position(snake)
+    def __init__(self, snake, walls=None):
+        self.positions = self.random_position(snake, walls or [])
 
-    def random_position(self, snake):
+    def random_position(self, snake, walls):
         while True:
             position = (random.randint(1, GRID_SIZE - 2), random.randint(1, GRID_SIZE - 2))
-            if position not in snake.positions:
+            # La pomme ne doit pas popper sur le serpent NI sur un mur
+            if position not in snake.positions and position not in walls:
                 return position
 
     def draw(self, surface):
