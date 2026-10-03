@@ -305,7 +305,7 @@ def render_start_menu(screen, current_lang, active_index, mode_keys, rects_map, 
 
 
 def start_screen():
-    """Gère le survol, la navigation et le lancement."""
+    """Gère le survol, la navigation par flèches (prioritaires) et le lancement."""
     current_lang = "FR"
     selected_index = 0
     mode_keys = list(LANGUAGES[current_lang]["modes"].keys())
@@ -325,59 +325,50 @@ def start_screen():
     waiting = True
     while waiting:
         mouse_pos = pygame.mouse.get_pos()
-        hovered_index = None
         is_play_hovered = play_btn_rect.collidepoint(mouse_pos)
-
-        for idx, rect in rects_map.items():
-            if rect.collidepoint(mouse_pos):
-                hovered_index = idx
-                selected_index = idx
-                break
-
-        active_index = hovered_index if hovered_index is not None else selected_index
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
+            # La souris ne prend le dessus QUE lorsqu'elle bouge activement
+            elif event.type == pygame.MOUSEMOTION:
+                for idx, rect in rects_map.items():
+                    if rect.collidepoint(mouse_pos):
+                        selected_index = idx
+                        break
+
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     if flag_rect.collidepoint(mouse_pos):
                         current_lang = "EN" if current_lang == "FR" else "FR"
                         mode_keys = list(LANGUAGES[current_lang]["modes"].keys())
-                    elif hovered_index is not None or is_play_hovered:
-                        waiting = False
+                    else:
+                        # Clique sur n'importe quelle carte ou le bouton Jouer
+                        for idx, rect in rects_map.items():
+                            if rect.collidepoint(mouse_pos):
+                                selected_index = idx
+                                waiting = False
+                                break
+                        if is_play_hovered:
+                            waiting = False
 
             elif event.type == pygame.KEYDOWN:
+                # La navigation au clavier met à jour 'selected_index' directement
                 if event.key == pygame.K_LEFT:
-                    if selected_index in (1, 3):
-                        selected_index = 0
-                    elif selected_index in (2, 4):
-                        selected_index -= 1
+                    selected_index = (selected_index - 1) % len(mode_keys)
                 elif event.key == pygame.K_RIGHT:
-                    if selected_index == 0:
-                        selected_index = 1
-                    elif selected_index in (1, 3):
-                        selected_index += 1
-                elif event.key == pygame.K_UP:
-                    if selected_index == 3:
-                        selected_index = 1
-                    elif selected_index == 4:
-                        selected_index = 2
-                elif event.key == pygame.K_DOWN:
-                    if selected_index == 1:
-                        selected_index = 3
-                    elif selected_index == 2:
-                        selected_index = 4
+                    selected_index = (selected_index + 1) % len(mode_keys)
                 elif event.key == pygame.K_l:
                     current_lang = "EN" if current_lang == "FR" else "FR"
                     mode_keys = list(LANGUAGES[current_lang]["modes"].keys())
                 elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                     waiting = False
 
+        # 'selected_index' est désormais l'unique référence pour le rendu
         render_start_menu(
-            screen, current_lang, active_index, mode_keys,
+            screen, current_lang, selected_index, mode_keys,
             rects_map, flag_rect, play_btn_rect, is_play_hovered
         )
         pygame.display.flip()

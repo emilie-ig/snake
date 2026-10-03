@@ -43,7 +43,7 @@ class Apple:
 
 
 class GoldenApple(Apple):
-    def __init__(self, snake, duration_ms=5000):
+    def __init__(self, snake, duration_ms=4000):
         super().__init__(snake)
         self.spawn_time = pygame.time.get_ticks()
         self.duration = duration_ms  # Temps avant de disparaître (en ms)
